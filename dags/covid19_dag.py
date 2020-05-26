@@ -1,6 +1,9 @@
 from datetime import datetime, timedelta
+
 from airflow import DAG
 from airflow.operators.dummy_operator import DummyOperator
+
+from operators.termination_operator import TerminationOperator
 
 
 # Define default_args to be passed in to operators
@@ -25,6 +28,6 @@ dag = DAG(
 )
 
 starting_point = DummyOperator(task_id='starting_point', dag=dag)
-termination = DummyOperator(task_id='termination', dag=dag)
+termination = TerminationOperator(task_id='termination', dag=dag)
 
 starting_point >> termination
