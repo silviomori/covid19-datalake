@@ -1,21 +1,10 @@
-from datetime import datetime, timedelta
-
 from airflow import DAG
 from airflow.operators.dummy_operator import DummyOperator
+from airflow.contrib.operators.emr_create_job_flow_operator import EmrCreateJobFlowOperator
 
+from covid19_dag_settings import default_args, emr_settings
 from operators.termination_operator import TerminationOperator
 
-
-# Define default_args to be passed in to operators
-default_args = {
-    'owner': 'root',
-    'depends_on_past': False,
-    'start_date': datetime.now(),
-    'email_on_failure': False,
-    'email_on_retry': False,
-    'retries': 3,
-    'retry_delay': timedelta(minutes=5),
-}
 
 # Define a DAG
 dag = DAG(
@@ -28,6 +17,14 @@ dag = DAG(
 )
 
 starting_point = DummyOperator(task_id='starting_point', dag=dag)
-termination = TerminationOperator(task_id='termination', dag=dag)
 
-starting_point >> termination
+create_emr_cluster_task = EmrCreateJobFlowOperator(
+    task_id='create_emr_cluster',
+    job_flow_overrides=emr_settings,
+    dag=dag
+)
+
+termination_task = TerminationOperator(task_id='termination', dag=dag)
+
+starting_point >> create_emr_cluster_task
+create_emr_cluster_task >> termination_task
