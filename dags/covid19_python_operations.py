@@ -1,5 +1,6 @@
 import logging
 
+import boto3
 from airflow.hooks.S3_hook import S3Hook
 
 
@@ -17,3 +18,11 @@ def check_data_exists(bucket, prefix, file):
         raise Exception('File not found:', file)
 
     return f'File found: bucket: {bucket}, prefix: {prefix}, file: {file}'
+
+
+def stop_airflow_containers(cluster):
+    ecs = boto3.client('ecs')
+    task_list = ecs.list_tasks(cluster=cluster)
+    for task_arn in task_list['taskArns']:
+        print('stopping task:', task_arn)
+        ecs.stop_task(cluster=cluster, task=task_arn)

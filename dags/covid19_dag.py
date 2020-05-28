@@ -5,8 +5,7 @@ from airflow.contrib.operators.emr_create_job_flow_operator import EmrCreateJobF
 from airflow.contrib.operators.emr_terminate_job_flow_operator import EmrTerminateJobFlowOperator
 
 from covid19_dag_settings import default_args, emr_settings
-from covid19_python_operations import check_data_exists
-from operators.termination_operator import TerminationOperator
+from covid19_python_operations import check_data_exists, stop_airflow_containers
 
 
 # Define a DAG
@@ -45,10 +44,15 @@ terminate_emr_cluster_task = EmrTerminateJobFlowOperator(
     dag=dag)
 
 
-termination_task = TerminationOperator(task_id='termination', dag=dag)
+stop_airflow_containers_task = PythonOperator(
+    task_id='stop_airflow_containers',
+    python_callable=stop_airflow_containers,
+    op_kwargs={'cluster': 'covid19-ecs-cluster'},
+    provide_context=False,
+    dag=dag)
 
 
 starting_point >> check_data_exists_task
 check_data_exists_task >> create_emr_cluster_task
 create_emr_cluster_task >> terminate_emr_cluster_task
-terminate_emr_cluster_task >> termination_task
+terminate_emr_cluster_task >> stop_airflow_containers_task
