@@ -1,13 +1,15 @@
 from airflow import DAG
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.operators.python_operator import PythonOperator
+from airflow.contrib.operators.emr_add_steps_operator import EmrAddStepsOperator
 from airflow.contrib.operators.emr_create_job_flow_operator import EmrCreateJobFlowOperator
 from airflow.contrib.operators.emr_terminate_job_flow_operator import EmrTerminateJobFlowOperator
+from airflow.contrib.sensors.emr_step_sensor import EmrStepSensor
 
-import spark_steps.spark_step_one
 from covid19_dag_settings import default_args, emr_settings
 from covid19_python_operations import check_data_exists, stop_airflow_containers
 
+from spark_steps import spark_step_one
 
 
 # Define a DAG
