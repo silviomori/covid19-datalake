@@ -2,25 +2,6 @@ import pyspark.sql.functions as F
 from pyspark.sql import SparkSession
 
 
-file_path = "https://github.com/silviomori/covid19-datalake/raw/" \
-            "adding-task-to-spark/dags/spark_steps/spark_step_one.py"
-
-
-definition = [{
-    "Name": "Spark Step One",
-    "ActionOnFailure": "CONTINUE",
-    "HadoopJarStep": {
-        "Jar":"command-runner.jar",
-        "Args": [
-            "spark-submit",
-            "--deploy-mode", "client",
-            "--py-files", file_path,
-            file_path
-            ]
-        }
-    }]
-
-
 def create_spark_session():
     """Create a Spark session."""
     spark = SparkSession \
