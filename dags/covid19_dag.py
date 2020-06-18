@@ -12,8 +12,7 @@ from airflow.contrib.sensors.emr_step_sensor import EmrStepSensor
 from covid19_dag_settings import (default_args, emr_settings,
     spark_step_one_definition)
 from covid19_python_operations import (check_data_exists,
-    stop_airflow_containers)
-
+    copy_us_data_file, stop_airflow_containers)
 
 
 # Define a DAG
@@ -30,14 +29,26 @@ dag = DAG(
 starting_point = DummyOperator(task_id='starting_point', dag=dag)
 
 
-# Check whether the data file exists 
-check_data_exists_task = PythonOperator(
-    task_id='check_data_exists',
+# Check whether the world data file exists 
+check_world_data_exists_task = PythonOperator(
+    task_id='check_world_data_exists',
     python_callable=check_data_exists,
     op_kwargs={'bucket': 'covid19-lake',
                'prefix': 'archived/tableau-jhu/csv',
                'file': 'COVID-19-Cases.csv'},
     provide_context=False,
+    dag=dag)
+
+
+# Copy detailed US data file to a local bucket,
+# in case it changes the name during running time
+copy_us_data_file_task = PythonOperator(
+    task_id='copy_us_data_file',
+    python_callable=copy_us_data_file,
+    op_kwargs={'bucket_origin': 'covid19-lake',
+               'prefix_origin': 'enigma-aggregation/json/us_states',
+               'bucket_dest': 'covid19-datalake-silviomori',
+               'key_dest': 'raw-data/enigma_agg_usa.json'},
     dag=dag)
 
 
@@ -92,8 +103,8 @@ stop_airflow_containers_task = PythonOperator(
 
 
 # Setting up dependencies
-starting_point >> check_data_exists_task
-check_data_exists_task >> create_emr_cluster_task
+starting_point >> [check_world_data_exists_task,
+                   copy_us_data_file_task] >> \
 create_emr_cluster_task >> add_spark_step_one_task
 add_spark_step_one_task >> watch_spark_step_one_task
 watch_spark_step_one_task >> terminate_emr_cluster_task
