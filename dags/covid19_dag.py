@@ -12,7 +12,7 @@ from airflow.contrib.sensors.emr_step_sensor import EmrStepSensor
 from covid19_dag_settings import (default_args, emr_settings,
     spark_step_one_definition)
 from covid19_python_operations import (check_data_exists,
-    copy_us_data_file, stop_airflow_containers)
+    copy_us_data_file, copy_brazil_data_file, stop_airflow_containers)
 
 
 # Define a DAG
@@ -49,6 +49,17 @@ copy_us_data_file_task = PythonOperator(
                'prefix_origin': 'enigma-aggregation/json/us_states',
                'bucket_dest': 'covid19-datalake-silviomori',
                'key_dest': 'raw-data/enigma_agg_usa.json'},
+    dag=dag)
+
+
+# Copy detailed Brazil data file to a local bucket.
+copy_brazil_data_file_task = PythonOperator(
+    task_id='copy_brazil_data_file',
+    python_callable=copy_brazil_data_file,
+    op_kwargs={'origin_host': 'data.brasil.io',
+               'origin_filepath': 'dataset/covid19/caso_full.csv.gz',
+               'dest_bucket': 'covid19-datalake-silviomori',
+               'dest_key': 'raw-data/COVID-19-Brazil.csv.gz'},
     dag=dag)
 
 
@@ -104,7 +115,8 @@ stop_airflow_containers_task = PythonOperator(
 
 # Setting up dependencies
 starting_point >> [check_world_data_exists_task,
-                   copy_us_data_file_task] >> \
+                   copy_us_data_file_task,
+                   copy_brazil_data_file_task] >> \
 create_emr_cluster_task >> add_spark_step_one_task
 add_spark_step_one_task >> watch_spark_step_one_task
 watch_spark_step_one_task >> terminate_emr_cluster_task
